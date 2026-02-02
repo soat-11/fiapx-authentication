@@ -1,0 +1,52 @@
+service: auth-service
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'local'}
+  environment:
+    TABLE_NAME: ${self:service}-users-${self:provider.stage}
+
+build:
+  esbuild:
+    bundle: true
+    minify: false
+
+plugins:
+  - serverless-localstack
+
+custom:
+  localstack:
+    stages: [local]
+    autostart: false
+    lambda:
+      mountCode: false
+
+functions:
+  createUser:
+    handler: src/handlers/create-user.handler
+    events:
+      - http:
+          path: auth/create
+          method: post
+  loginUser:
+    handler: src/handlers/login.handler
+    events:
+      - http:
+          path: auth/login
+          method: post
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-users-${self:provider.stage}
+        AttributeDefinitions:
+          - AttributeName: username
+            AttributeType: S
+        KeySchema:
+          - AttributeName: username
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
