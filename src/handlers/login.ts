@@ -1,14 +1,15 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { UserService } from '../services/user';
-import bcrypt from 'bcryptjs';
+import { getCognitoConfig } from '../infra/cognito';
 
-const userService = new UserService();
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const { username, password } = JSON.parse(event.body || '{}');
+    
+    const cognitoConfig = await getCognitoConfig();
+    const userService = new UserService(cognitoConfig);
 
-    // 1. Busca o usuário
     const user = await userService.login(username, password);
     if (!user) {
       return { statusCode: 401, body: JSON.stringify({ message: "Credenciais inválidas" }) };
@@ -16,7 +17,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: "Login realizado com sucesso", token: user.token }),
+      body: JSON.stringify({ token: user.token }),
     };
   } catch (error: any) {
     return { statusCode: 500, body: JSON.stringify({ error: error.message }) };

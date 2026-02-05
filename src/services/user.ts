@@ -1,43 +1,72 @@
-import { randomUUID } from "node:crypto";
-import { UserRepository } from "../repositories/user";
-import { AuthManager } from "../security/auth-manager";
+import { 
+  CognitoIdentityProviderClient, 
+  SignUpCommand, 
+  AdminConfirmSignUpCommand,
+  InitiateAuthCommand,
+  AuthFlowType
+} from "@aws-sdk/client-cognito-identity-provider";
 
 export class UserService {
-  constructor(
-    private repository = new UserRepository(),
-    private auth = new AuthManager()
-  ) {}
-
-  async create(username: string, password: string, email?: string) {
-    const hashedPassword = await this.auth.hashPassword(password);
-    
-    const user = {
-      id: randomUUID(),
-      username,
-      email,
-      password: hashedPassword,
-      createdAt: new Date().toISOString(),
-    };
-
+  private client: CognitoIdentityProviderClient;
+  private userPoolId: string;
+  private clientId: string;
+  
+  constructor(config: { region: string; userPoolId: string; appClientId: string }) {
+    this.client = new CognitoIdentityProviderClient({ region: config.region });
+    this.userPoolId = config.userPoolId;
+    this.clientId = config.appClientId;
+  }
+  
+  async signup({ username, password, email }: any) {
     try {
-      await this.repository.save(user);
-      return { username, email };
+      await this.client.send(
+        new SignUpCommand({
+          ClientId: this.clientId,
+          Username: username,
+          Password: password,
+          UserAttributes: [
+            { Name: "email", Value: email },
+            { Name: "email_verified", Value: "true" },
+          ],
+        })
+      );
+      
+      const client = await this.client.send(
+        new AdminConfirmSignUpCommand({
+          Username: username,
+          UserPoolId: this.userPoolId,
+        })
+      );
+      
+      return client;
     } catch (error: any) {
-      if (error.name === "ConditionalCheckFailedException") {
-        throw new Error("Este username já está em uso.");
+      if (error.name === "UsernameExistsException") {
+        return { statusCode: 400, body: JSON.stringify({ message: "Usuário já existe" }) };
       }
+      console.error("Erro no Signup:", error);
       throw error;
     }
   }
-
+  
   async login(username: string, password: string) {
-    const user = await this.repository.findByUsername(username);
-    
-    if (!user || !(await this.auth.comparePasswords(password, user.password))) {
-      throw new Error("Credenciais inválidas");
+    try {
+      const command = new InitiateAuthCommand({
+        AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
+        ClientId: this.clientId,
+        AuthParameters: {
+          USERNAME: username,
+          PASSWORD: password,
+        },
+      });
+      
+      const response = await this.client.send(command);
+      
+      return {
+        token: response.AuthenticationResult?.IdToken,
+        refreshToken: response.AuthenticationResult?.RefreshToken
+      };
+    } catch (error: any) {
+      throw new Error("Credenciais inválidas no Cognito");
     }
-
-    const token = this.auth.generateToken({ username: user.username, email: user.email });
-    return { token };
   }
 }

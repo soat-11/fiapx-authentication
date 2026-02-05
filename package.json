@@ -7,6 +7,10 @@
     "test": "tests"
   },
   "scripts": {
+    "prebuild": "rm -rf ./dist && rm -rf auth-service.zip",
+    "build": "esbuild src/handlers/*.ts --bundle --minify --sourcemap --platform=node --target=node18 --outdir=dist",
+    "postbuild": "cd dist && zip -r ../auth-service.zip . && cd ..",
+    "offline": "npm run build && serverless offline",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -17,6 +21,8 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.980.0",
+    "@aws-sdk/client-ssm": "^3.893.0",
+    "amazon-cognito-identity-js": "^6.3.15",
     "@aws-sdk/client-dynamodb": "^3.980.0",
     "@aws-sdk/lib-dynamodb": "^3.980.0",
     "bcryptjs": "^3.0.3",

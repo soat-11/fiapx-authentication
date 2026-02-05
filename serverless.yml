@@ -25,7 +25,7 @@ custom:
 
 functions:
   createUser:
-    handler: src/handlers/create-user.handler
+    handler: src/handlers/signup.handler
     events:
       - http:
           path: auth/create
