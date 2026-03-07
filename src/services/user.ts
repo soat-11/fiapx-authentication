@@ -26,7 +26,6 @@ export class UserService {
           Password: password,
           UserAttributes: [
             { Name: "email", Value: email },
-            { Name: "email_verified", Value: "true" },
           ],
         })
       );
