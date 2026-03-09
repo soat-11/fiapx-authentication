@@ -40,9 +40,8 @@ export class UserService {
       return client;
     } catch (error: any) {
       if (error.name === "UsernameExistsException") {
-        return { statusCode: 400, body: JSON.stringify({ message: "Usuário já existe" }) };
+        return { statusCode: 400, body: JSON.stringify({ message: "User already exists" }) };
       }
-      console.error("Erro no Signup:", error);
       throw error;
     }
   }
@@ -65,7 +64,7 @@ export class UserService {
         refreshToken: response.AuthenticationResult?.RefreshToken
       };
     } catch (error: any) {
-      throw new Error("Credenciais inválidas no Cognito");
+      throw new Error("Invalid credentials");
     }
   }
 }

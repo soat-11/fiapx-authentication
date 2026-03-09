@@ -8,13 +8,12 @@ const config: Config = {
   testEnvironment: 'node',
 
   // Localização dos arquivos de teste
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
 
   // Padrão de nomeação dos arquivos de teste
   testMatch: [
     '**/tests/**/*.spec.ts',
-    '**/tests/**/*.test.ts'
-  ],
+    '**/tests/**/*.test.ts',  ],
 
   // Coleta de cobertura (Essencial para o requisito de Qualidade de Software do PDF [cite: 14, 38])
   collectCoverage: true,
