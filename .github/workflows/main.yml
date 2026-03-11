@@ -1,0 +1,57 @@
+name: CI/CD das Funções Lambda (Signup e Login)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET_NAME: fiapx-project-lambda
+  ZIP_FILE_NAME: auth-service.zip
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Instalar Dependências
+        run: npm ci
+
+      - name: BUILD | Compilar TS e Gerar ZIP
+        run: npm run build
+
+      - name: Configurar Credenciais da AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: UPLOAD | Enviar para o S3 (Artifact Store)
+        run: aws s3 cp ${{ env.ZIP_FILE_NAME }} s3://${{ env.S3_BUCKET_NAME }}/${{ env.ZIP_FILE_NAME }}
+
+      - name: DEPLOY | Atualizar Função Signup
+        run: |
+          aws lambda update-function-code \
+            --function-name signup \
+            --s3-bucket ${{ env.S3_BUCKET_NAME }} \
+            --s3-key ${{ env.ZIP_FILE_NAME }}
+
+      - name: DEPLOY | Atualizar Função Login
+        run: |
+          aws lambda update-function-code \
+            --function-name login \
+            --s3-bucket ${{ env.S3_BUCKET_NAME }} \
+            --s3-key ${{ env.ZIP_FILE_NAME }}
