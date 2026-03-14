@@ -1,3 +1,7 @@
 node_modules
 .serverless
 coverage
+dist
+.dist
+**/.zip
+zips
